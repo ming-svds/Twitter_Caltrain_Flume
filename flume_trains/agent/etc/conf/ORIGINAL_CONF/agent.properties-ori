@@ -1,0 +1,77 @@
+agent.sources=image-source audio-data-source audio-analysis-source
+agent.channels=image-channel audio-data-hbase-channel audio-data-file-channel audio-analysis-channel
+agent.sinks=image-hbase-sink audio-data-hbase-sink audio-data-file-sink audio-analysis-hbase-sink
+
+# Properties for image analysis
+
+agent.sources.image-source.type=exec
+agent.sources.image-source.channels=image-channel
+agent.sources.image-source.batchSize=10
+agent.sources.image-source.command=tail -F /home/rachel/caltrain/imagelogs/train_image_events.txt
+agent.sources.image-source.restart=true
+agent.sources.image-source.restartThrottle=900000
+
+agent.channels.image-channel.type=memory
+agent.channels.image-channel.capacity=10000
+agent.channels.image-channel.transactionCapacity=1000
+
+agent.sinks.image-hbase-sink.type=org.apache.flume.sink.hbase.HBaseSink
+agent.sinks.image-hbase-sink.channel=image-channel
+agent.sinks.image-hbase-sink.batchSize=10
+agent.sinks.image-hbase-sink.table=image_events
+agent.sinks.image-hbase-sink.columnFamily=data
+agent.sinks.image-hbase-sink.serializer=com.svds.flume.HbaseSplittingEventSerializer
+agent.sinks.image-hbase-sink.serializer.columnNames=magic,rowkey,timestamp,filename1,filename2,event,camera_id,direction,train_type
+agent.sinks.image-hbase-sink.serializer.magicField=1
+agent.sinks.image-hbase-sink.serializer.rowField=2
+agent.sinks.image-hbase-sink.serializer.magic=TRAINS
+
+# Properties for audio data
+
+agent.sources.audio-data-source.type=thrift
+agent.sources.audio-data-source.channels=audio-data-hbase-channel audio-data-file-channel
+agent.sources.audio-data-source.bind=0.0.0.0
+agent.sources.audio-data-source.port=8020
+
+agent.channels.audio-data-hbase-channel.type = memory
+agent.channels.audio-data-hbase-channel.capacity=10000
+agent.channels.audio-data-hbase-channel.transactionCapacity=1000
+
+agent.channels.audio-data-file-channel.type = memory
+agent.channels.audio-data-file-channel.capacity=10000
+agent.channels.audio-data-file-channel.transactionCapacity=1000
+
+agent.sinks.audio-data-hbase-sink.type=org.apache.flume.sink.hbase.HBaseSink
+agent.sinks.audio-data-hbase-sink.channel=audio-data-hbase-channel
+agent.sinks.audio-data-hbase-sink.batchSize=10
+agent.sinks.audio-data-hbase-sink.table=raw_audio
+agent.sinks.audio-data-hbase-sink.columnFamily=data
+agent.sinks.audio-data-hbase-sink.serializer=com.svds.flume.HbaseSplittingEventSerializer
+agent.sinks.audio-data-hbase-sink.serializer.columnNames=id,device_id,timestamp,rate,channels,data
+agent.sinks.audio-data-hbase-sink.serializer.rowField=1
+
+agent.sinks.audio-data-file-sink.type=file_roll
+agent.sinks.audio-data-file-sink.channel=audio-data-file-channel
+agent.sinks.audio-data-file-sink.batchSize=10
+agent.sinks.audio-data-file-sink.sink.directory=/home/ubuntu/caltrain/data/
+agent.sinks.audio-data-file-sink.sink.rollInterval=5
+
+# Properties for audio analysis
+
+agent.sources.audio-analysis-source.type=thrift
+agent.sources.audio-analysis-source.channels=audio-analysis-channel
+agent.sources.audio-analysis-source.bind=0.0.0.0
+agent.sources.audio-analysis-source.port=8021
+
+agent.channels.audio-analysis-channel.type = memory
+agent.channels.audio-analysis-channel.capacity=10000
+agent.channels.audio-analysis-channel.transactionCapacity=1000
+
+agent.sinks.audio-analysis-hbase-sink.type=org.apache.flume.sink.hbase.HBaseSink
+agent.sinks.audio-analysis-hbase-sink.channel=audio-analysis-channel
+agent.sinks.audio-analysis-hbase-sink.batchSize = 10
+agent.sinks.audio-analysis-hbase-sink.table=audio_features
+agent.sinks.audio-analysis-hbase-sink.columnFamily=features
+agent.sinks.audio-analysis-hbase-sink.serializer=com.svds.flume.HbaseSplittingEventSerializer
+agent.sinks.audio-analysis-hbase-sink.serializer.columnNames=id,device_id,timestamp,rate,channels,max_whistle,min_whistle,whistles,prediction
+agent.sinks.audio-analysis-hbase-sink.serializer.rowField=1
